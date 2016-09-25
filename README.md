@@ -19,6 +19,17 @@ Provider.identify({
       console.log(e.data);
    }
 });
+Provider.listIdentifiers({
+   from : "1998-01-15",
+   metadataPrefix : "oldArXiv",
+   set : ["physics","hep"]
+   onload : function(e) {
+      console.log(e.data);
+   }
+})
+```
+*listIdentifiers* returns a list if identifiers. Now you can ask:
+```javascript
 Provider.getRecord({
    identifier : "oai:arXiv.org:hep-th/9901001",
    metadataPrefix : "oai_dc",
@@ -27,7 +38,10 @@ Provider.getRecord({
    }
 })
 ```
+
+
 After all you can release by:
 ```javascript
 Provider.close();
 ```
+

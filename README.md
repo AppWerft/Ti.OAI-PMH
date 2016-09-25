@@ -19,6 +19,12 @@ Provider.identify({
       console.log(e.data);
    }
 });
+```
+This request give us [this answer](https://raw.githubusercontent.com/AppWerft/Ti.OAI-PMH/master/documentation/verb%3Didentify).
+
+Now we can ask by filter:
+
+```javascript
 Provider.listIdentifiers({
    from : "1998-01-15",
    metadataPrefix : "oldArXiv",

@@ -13,6 +13,12 @@ var Provider = createConnection("http://an.oa.org/");
 After connecting with a provider you can ask all questions:
 
 ```javascript
+
+Provider.identify({
+   onload : function(e) {
+      console.log(e.data);
+   }
+});
 Provider.getRecord({
    identifier : "oai:arXiv.org:hep-th/9901001",
    metadataPrefix : "oai_dc",

@@ -8,7 +8,9 @@ This module realise an Android module for Titanium. The http based prorotcol *OA
 
 ```javascript
 var OAIPMH = require("de.appwerft.oaipmh");
-var Provider = createConnection("http://memory.loc.gov/cgi-bin/oai2_0");
+var Provider = createConnection({
+   url : "http://memory.loc.gov/cgi-bin/oai2_0"
+});
 ```
 After connecting with a provider you can ask all questions:
 

@@ -1,4 +1,4 @@
-package de.appwerft.remotexml;
+package de.appwerft.oaipmh;
 
 import java.util.ArrayList;
 import java.util.HashMap;

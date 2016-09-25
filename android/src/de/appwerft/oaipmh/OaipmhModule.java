@@ -14,8 +14,10 @@ import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
+import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiC;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
@@ -28,6 +30,7 @@ import cz.msebera.android.httpclient.Header;
 @Kroll.module(name = "Oaipmh", id = "de.appwerft.oaipmh")
 public class OaipmhModule extends KrollModule {
 	final String URL = "http://www.openarchives.org/pmh/registry/ListFriends";
+	private final String LCAT = "OAI";
 	private String filter;
 	private Context ctx = TiApplication.getInstance().getApplicationContext();
 	private KrollFunction onErrorCallback;
@@ -85,10 +88,26 @@ public class OaipmhModule extends KrollModule {
 			} catch (UnsupportedEncodingException e1) {
 				e1.printStackTrace();
 			}
-			JSONObject json = de.appwerft.oaipmh.JSON
-					.toJSON(org.json.jsonjava.XML.toJSONObject(xml));
+			org.json.jsonjava.JSONArray providerlist = org.json.jsonjava.XML
+					.toJSONObject(xml).getJSONObject("BaseURLs")
+					.getJSONArray("baseURL");
 			KrollDict res = new KrollDict();
-			res.put("data", json);
+			KrollDict providers = new KrollDict();
+
+			for (int i = 0; i < providerlist.length(); i++) {
+				Object obj = providerlist.get(i);
+				if (obj instanceof org.json.jsonjava.JSONObject) {
+					org.json.jsonjava.JSONObject provider = (org.json.jsonjava.JSONObject) obj;
+					String url = provider.getString("content");
+					String id = provider.getString("id");
+					if (filter == null || url.contains(filter))
+						providers.put(id, url);
+				}
+
+				// res.put(provider.getString("id"),
+				// provider.getString("content"));
+			}
+			res.put("providers", providers);
 			if (onLoadCallback != null)
 				onLoadCallback.call(getKrollObject(), res);
 

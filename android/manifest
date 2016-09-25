@@ -5,7 +5,7 @@
 version: 1.0.0
 apiversion: 2
 architectures: armeabi armeabi-v7a x86
-description: oaipmh
+description: Adapter for OAI
 author: Rainer Knöterich
 license: Specify your license
 copyright: Copyright (c) 2016 by 

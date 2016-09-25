@@ -8,26 +8,36 @@
  */
 package de.appwerft.oaipmh;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.appcelerator.kroll.KrollDict;
+import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollProxy;
 import org.appcelerator.kroll.annotations.Kroll;
+import org.appcelerator.kroll.common.Log;
+import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiC;
-import org.appcelerator.titanium.util.Log;
-import org.appcelerator.titanium.util.TiConfig;
-import org.appcelerator.titanium.util.TiConvert;
-import org.appcelerator.titanium.proxy.TiViewProxy;
-import org.appcelerator.titanium.view.TiCompositeLayout;
-import org.appcelerator.titanium.view.TiCompositeLayout.LayoutArrangement;
-import org.appcelerator.titanium.view.TiUIView;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import android.app.Activity;
+import android.content.Context;
+
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
+
+import cz.msebera.android.httpclient.Header;
 
 // This proxy can be created by calling Oaipmh.createExample({message: "hello world"})
 @Kroll.proxy(creatableInModule = OaipmhModule.class)
-public class ProviderProxy extends TiViewProxy {
+public class ProviderProxy extends KrollProxy {
 	// Standard Debugging variables
-	private static final String LCAT = "ExampleProxy";
-	private static final boolean DBG = TiConfig.LOGD;
+	private static final String LCAT = "OAI";
+	Context ctx = TiApplication.getInstance().getApplicationContext();
+	private String ENDPOINT;
+	KrollFunction onErrorCallback;
+	KrollFunction onLoadCallback;
 
 	// Constructor
 	public ProviderProxy() {
@@ -37,28 +47,82 @@ public class ProviderProxy extends TiViewProxy {
 	@Override
 	public void handleCreationDict(KrollDict options) {
 		super.handleCreationDict(options);
-
-		if (options.containsKey("message")) {
-			Log.d(LCAT,
-					"example created with message: " + options.get("message"));
+		if (options.containsKeyAndNotNull(TiC.PROPERTY_URL)) {
+			final URI uri;
+			try {
+				uri = new URI(options.getString(TiC.PROPERTY_URL));
+				this.ENDPOINT = uri.toString();
+			} catch (URISyntaxException e) {
+				e.printStackTrace();
+			}
 		}
+
 	}
 
 	// Methods
 	@Kroll.method
-	public void printMessage(String message) {
-		Log.d(LCAT, "printing message: " + message);
+	public void identify(KrollDict options) {
+		if (options != null) {
+
+			Log.d(LCAT, "start identify");
+			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONLOAD)) {
+				Object cb = options.get(TiC.PROPERTY_ONLOAD);
+				if (cb instanceof KrollFunction) {
+					onLoadCallback = (KrollFunction) cb;
+				}
+
+			} else
+				Log.e(LCAT, "missing callback 'onload'");
+			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONERROR)) {
+				Object cb = options.get(TiC.PROPERTY_ONERROR);
+				if (cb instanceof KrollFunction) {
+					onErrorCallback = (KrollFunction) cb;
+				}
+			}
+			AsyncHttpClient client = new AsyncHttpClient();
+			String url = ENDPOINT + "?verb=Identify";
+			Log.d(LCAT, "URL=" + ENDPOINT);
+			client.get(ctx, url, new XMLResponseHandler());
+		}
+		Log.e(LCAT, "missing options");
 	}
 
-	@Kroll.getProperty
-	@Kroll.method
-	public String getMessage() {
-		return "Hello World from my module";
+	private final class XMLResponseHandler extends AsyncHttpResponseHandler {
+		@Override
+		public void onFailure(int status, Header[] header, byte[] response,
+				Throwable arg3) {
+			if (onErrorCallback != null)
+				onErrorCallback.call(getKrollObject(), new KrollDict());
+		}
+
+		@Override
+		public void onSuccess(int status, Header[] header, byte[] response) {
+			String charset = "UTF-8";
+			for (int i = 0; i < header.length; i++) {
+				if (header[i].getName() == "Content-Type") {
+					String[] parts = header[i].getValue().split("; ");
+					if (parts != null) {
+						charset = parts[1].replace("charset=", "")
+								.toUpperCase();
+					}
+				}
+			}
+			String xml = "";
+			try {
+				xml = new String(response, charset);
+			} catch (UnsupportedEncodingException e1) {
+				e1.printStackTrace();
+			}
+			org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
+					.toJSONObject(xml);
+			// JSONObject result = de.appwerft.oaipmh.JSON.toJSON(json);
+
+			KrollDict result = new KrollDict();
+			result.put("data", json.toString());
+
+			onLoadCallback.call(getKrollObject(), new KrollDict(result));
+
+		}
 	}
 
-	@Kroll.setProperty
-	@Kroll.method
-	public void setMessage(String message) {
-		Log.d(LCAT, "Tried setting module message to: " + message);
-	}
 }

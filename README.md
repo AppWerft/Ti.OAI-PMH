@@ -8,6 +8,19 @@ This module realise an Android module for Titanium. The http based prorotcol *OA
 
 ```javascript
 var OAIPMH = require("de.appwerft.oaipmh");
+```
+
+First we can retreive a list of all providers:
+```javascript
+OAIPMH.getList({
+   onload : function(e) {
+      console.log(e.data);
+   }
+});
+```
+[Here the result](https://raw.githubusercontent.com/AppWerft/Ti.OAI-PMH/master/documentation/listproviders)
+Now we can present a list for the user, the user select one provider and now we connect to it:
+```javascript
 var Provider = createConnection({
    url : "http://memory.loc.gov/cgi-bin/oai2_0"
 });

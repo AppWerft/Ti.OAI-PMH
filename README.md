@@ -65,4 +65,3 @@ After all you can release by:
 ```javascript
 Provider.close();
 ```
-

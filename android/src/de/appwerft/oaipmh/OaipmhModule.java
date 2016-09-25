@@ -8,58 +8,90 @@
  */
 package de.appwerft.oaipmh;
 
+import java.io.UnsupportedEncodingException;
+
+import org.appcelerator.kroll.KrollDict;
+import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
-
 import org.appcelerator.titanium.TiApplication;
-import org.appcelerator.kroll.common.Log;
-import org.appcelerator.kroll.common.TiConfig;
+import org.appcelerator.titanium.TiC;
+import org.json.JSONObject;
 
+import android.content.Context;
 
-@Kroll.module(name="Oaipmh", id="de.appwerft.oaipmh")
-public class OaipmhModule extends KrollModule
-{
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.AsyncHttpResponseHandler;
 
-	// Standard Debugging variables
-	private static final String LCAT = "OaipmhModule";
-	private static final boolean DBG = TiConfig.LOGD;
+import cz.msebera.android.httpclient.Header;
 
-	// You can define constants with @Kroll.constant, for example:
-	// @Kroll.constant public static final String EXTERNAL_NAME = value;
+@Kroll.module(name = "Oaipmh", id = "de.appwerft.oaipmh")
+public class OaipmhModule extends KrollModule {
+	final String URL = "http://www.openarchives.org/pmh/registry/ListFriends";
+	private String filter;
+	private Context ctx = TiApplication.getInstance().getApplicationContext();
+	private KrollFunction onErrorCallback;
+	private KrollFunction onLoadCallback;
 
-	public OaipmhModule()
-	{
+	public OaipmhModule() {
 		super();
 	}
 
-	@Kroll.onAppCreate
-	public static void onAppCreate(TiApplication app)
-	{
-		Log.d(LCAT, "inside onAppCreate");
-		// put module init code that needs to run when the application is created
-	}
-
-	// Methods
 	@Kroll.method
-	public String example()
-	{
-		Log.d(LCAT, "example called");
-		return "hello world";
+	public void getList(KrollDict options) {
+		if (options.containsKeyAndNotNull("filter")) {
+			this.filter = options.getString("filter");
+		}
+
+		if (options.containsKeyAndNotNull(TiC.PROPERTY_ONLOAD)) {
+			Object cb = options.get(TiC.PROPERTY_ONLOAD);
+			if (cb instanceof KrollFunction) {
+				this.onLoadCallback = (KrollFunction) cb;
+			}
+		}
+		if (options.containsKeyAndNotNull(TiC.PROPERTY_ONERROR)) {
+			Object cb = options.get(TiC.PROPERTY_ONERROR);
+			if (cb instanceof KrollFunction) {
+				this.onErrorCallback = (KrollFunction) cb;
+			}
+		}
+		AsyncHttpClient client = new AsyncHttpClient();
+		client.get(ctx, URL, new XMLResponseHandler());
 	}
 
-	// Properties
-	@Kroll.getProperty
-	public String getExampleProp()
-	{
-		Log.d(LCAT, "get example property");
-		return "hello world";
+	private final class XMLResponseHandler extends AsyncHttpResponseHandler {
+		@Override
+		public void onFailure(int status, Header[] header, byte[] response,
+				Throwable arg3) {
+			if (onErrorCallback != null)
+				onErrorCallback.call(getKrollObject(), new KrollDict());
+		}
+
+		@Override
+		public void onSuccess(int status, Header[] header, byte[] response) {
+			String charset = "UTF-8";
+			for (int i = 0; i < header.length; i++) {
+				if (header[i].getName() == "Content-Type") {
+					String[] parts = header[i].getValue().split("; ");
+					if (parts != null) {
+						charset = parts[1].replace("charset=", "")
+								.toUpperCase();
+					}
+				}
+			}
+			String xml = "";
+			try {
+				xml = new String(response, charset);
+			} catch (UnsupportedEncodingException e1) {
+				e1.printStackTrace();
+			}
+			JSONObject json = de.appwerft.oaipmh.JSON
+					.toJSON(org.json.jsonjava.XML.toJSONObject(xml));
+			KrollDict res = new KrollDict();
+			res.put("data", json);
+			if (onLoadCallback != null)
+				onLoadCallback.call(getKrollObject(), res);
+
+		}
 	}
-
-
-	@Kroll.setProperty
-	public void setExampleProp(String value) {
-		Log.d(LCAT, "set example property: " + value);
-	}
-
 }
-

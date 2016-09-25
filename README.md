@@ -7,11 +7,12 @@ This module realise an Android module for Titanium. The http based prorotcol *OA
 ##Usage
 
 ```javascript
-
 var OAIPMH = require("de.appwerft.oaipmh");
-
 var Provider = createConnection("http://an.oa.org/");
+```
+After connecting with a provider you can ask all questions:
 
+```javascript
 Provider.getRecord({
    identifier : "oai:arXiv.org:hep-th/9901001",
    metadataPrefix : "oai_dc",
@@ -19,3 +20,8 @@ Provider.getRecord({
       console.log(e.data);
    }
 })
+```
+After all you can release by:
+```javascript
+Provider.close();
+```

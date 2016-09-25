@@ -22,7 +22,7 @@ OAIPMH.getList({
 
 Now we can present a list for the user, the user select one provider and now we connect to it:
 ```javascript
-var Provider = createConnection({
+var Provider = createProvider({
    url : "http://memory.loc.gov/cgi-bin/oai2_0"
 });
 ```

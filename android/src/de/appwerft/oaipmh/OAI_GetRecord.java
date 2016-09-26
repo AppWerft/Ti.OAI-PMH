@@ -16,19 +16,23 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 
 import cz.msebera.android.httpclient.Header;
 
-public class OAI_Identifier {
+public class OAI_GetRecord {
 	private static final String LCAT = "OAI";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 	private String ENDPOINT;
+
 	KrollFunction onErrorCallback;
 	KrollFunction onLoadCallback;
+	private String identifier = "";
 
-	public OAI_Identifier(String _endpoint, KrollDict options,
-			KrollObject _kroll) {
+	public OAI_GetRecord(String _endpoint, KrollDict options, KrollObject _kroll) {
 		final KrollObject kroll = _kroll;
 		this.ENDPOINT = _endpoint;
+
 		if (options != null) {
-			Log.d(LCAT, "start identify");
+			if (options.containsKeyAndNotNull("identifier")) {
+				identifier = options.getString("identifier");
+			}
 			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONLOAD)) {
 				Object cb = options.get(TiC.PROPERTY_ONLOAD);
 				if (cb instanceof KrollFunction) {
@@ -44,8 +48,12 @@ public class OAI_Identifier {
 				}
 			}
 			AsyncHttpClient client = new AsyncHttpClient();
-			client.setConnectTimeout(3000);
-			String url = ENDPOINT + "?verb=Identify";
+			client.setConnectTimeout(7000);
+			client.addHeader("Accept", "application/xml");
+			String url = ENDPOINT
+					+ "?verb=GetRecord&metadataPrefix=oai_dc&identifier="
+					+ identifier;
+			Log.d(LCAT, ">>>>>>>>>>>>>>\n" + url);
 			client.get(ctx, url, new AsyncHttpResponseHandler() {
 				@Override
 				public void onFailure(int status, Header[] header,
@@ -58,10 +66,12 @@ public class OAI_Identifier {
 				public void onSuccess(int status, Header[] header,
 						byte[] response) {
 					String xml = HTTPHelper.getBody(header, response);
+
 					org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
 							.toJSONObject(xml);
 					JSONObject jsonresult = (JSONObject) KrollHelper
 							.toKrollDict(json);
+					Log.d(LCAT, jsonresult.toString());
 					try {
 						onLoadCallback.call(kroll, new KrollDict(jsonresult));
 					} catch (JSONException e) {

@@ -63,6 +63,16 @@ public class ProviderProxy extends KrollProxy {
 
 	@Kroll.method
 	public void identify(KrollDict options) {
-		new OAI_Identifier(ENDPOINT, options, getKrollObject());
+		new OAI_Identify(ENDPOINT, options, getKrollObject());
+	}
+
+	@Kroll.method
+	public void listIdentifiers(KrollDict options) {
+		new OAI_listIdentifiers(ENDPOINT, options, getKrollObject());
+	}
+
+	@Kroll.method
+	public void getRecord(KrollDict options) {
+		new OAI_GetRecord(ENDPOINT, options, getKrollObject());
 	}
 }

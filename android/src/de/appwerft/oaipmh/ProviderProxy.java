@@ -11,6 +11,7 @@ package de.appwerft.oaipmh;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -63,7 +64,6 @@ public class ProviderProxy extends KrollProxy {
 	@Kroll.method
 	public void identify(KrollDict options) {
 		if (options != null) {
-
 			Log.d(LCAT, "start identify");
 			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONLOAD)) {
 				Object cb = options.get(TiC.PROPERTY_ONLOAD);
@@ -80,11 +80,11 @@ public class ProviderProxy extends KrollProxy {
 				}
 			}
 			AsyncHttpClient client = new AsyncHttpClient();
+			client.setConnectTimeout(3000);
 			String url = ENDPOINT + "?verb=Identify";
-			Log.d(LCAT, "URL=" + ENDPOINT);
 			client.get(ctx, url, new XMLResponseHandler());
-		}
-		Log.e(LCAT, "missing options");
+		} else
+			Log.e(LCAT, "missing options");
 	}
 
 	private final class XMLResponseHandler extends AsyncHttpResponseHandler {
@@ -115,12 +115,17 @@ public class ProviderProxy extends KrollProxy {
 			}
 			org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
 					.toJSONObject(xml);
-			// JSONObject result = de.appwerft.oaipmh.JSON.toJSON(json);
+			JSONObject jsonresult = (JSONObject) de.appwerft.oaipmh.JSON
+					.toJSON(json);
+			Log.d(LCAT, jsonresult.toString());
 
-			KrollDict result = new KrollDict();
-			result.put("data", json.toString());
-
-			onLoadCallback.call(getKrollObject(), new KrollDict(result));
+			try {
+				onLoadCallback
+						.call(getKrollObject(), new KrollDict(jsonresult));
+			} catch (JSONException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
 		}
 	}

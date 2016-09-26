@@ -1,11 +1,5 @@
 package de.appwerft.oaipmh;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 import org.appcelerator.kroll.common.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -14,34 +8,35 @@ import org.json.JSONObject;
 public class JSON {
 	final static String LCAT = "importJSON  🌀️";
 
-	public static JSONObject toJSON(Object value) {
+	public static Object toJSON(Object value) {
 		try {
 			if (value instanceof org.json.jsonjava.JSONObject) {
-				// Copy if node is object
+				Log.d(LCAT, "was Object >>>>>>>>>>>>>>>");
 				org.json.jsonjava.JSONObject foo = (org.json.jsonjava.JSONObject) value;
-				org.json.JSONObject bar = new org.json.JSONObject();
+				JSONObject bar = new JSONObject();
 				for (String key : foo.keySet()) {
+					Log.d(LCAT, "key=" + key + "  " + foo.get(key).toString());
 					bar.put(key, toJSON(foo.get(key)));
 				}
-				return (JSONObject) bar;
+				return (Object) bar;
 			} else if (value instanceof org.json.jsonjava.JSONArray) {
-				// Copy if node is array
 				org.json.jsonjava.JSONArray foo = (org.json.jsonjava.JSONArray) value;
-				org.json.JSONArray bar = new org.json.JSONArray();
+				JSONArray bar = new JSONArray();
 				for (int i = 0; i < foo.length(); i++) {
 					bar.put(toJSON(foo.get(i)));
 				}
 				JSONObject res = new JSONObject();
 				res.put("list", bar);
-				return res;
+				return (Object) res;
 			} else if (value == org.json.jsonjava.JSONObject.NULL) {
 				return null;
 			} else if (value instanceof String) {
-
+				return value;
 			}
 		} catch (JSONException e) {
 			Log.e(LCAT, e.getMessage());
 		}
-		return null;
+		return value;
 	}
+
 }

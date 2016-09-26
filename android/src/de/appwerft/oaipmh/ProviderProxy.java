@@ -20,6 +20,7 @@ import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiC;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -60,74 +61,8 @@ public class ProviderProxy extends KrollProxy {
 
 	}
 
-	// Methods
 	@Kroll.method
 	public void identify(KrollDict options) {
-		if (options != null) {
-			Log.d(LCAT, "start identify");
-			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONLOAD)) {
-				Object cb = options.get(TiC.PROPERTY_ONLOAD);
-				if (cb instanceof KrollFunction) {
-					onLoadCallback = (KrollFunction) cb;
-				}
-
-			} else
-				Log.e(LCAT, "missing callback 'onload'");
-			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONERROR)) {
-				Object cb = options.get(TiC.PROPERTY_ONERROR);
-				if (cb instanceof KrollFunction) {
-					onErrorCallback = (KrollFunction) cb;
-				}
-			}
-			AsyncHttpClient client = new AsyncHttpClient();
-			client.setConnectTimeout(3000);
-			String url = ENDPOINT + "?verb=Identify";
-			client.get(ctx, url, new XMLResponseHandler());
-		} else
-			Log.e(LCAT, "missing options");
+		new OAI_Identifier(ENDPOINT, options, getKrollObject());
 	}
-
-	private final class XMLResponseHandler extends AsyncHttpResponseHandler {
-		@Override
-		public void onFailure(int status, Header[] header, byte[] response,
-				Throwable arg3) {
-			if (onErrorCallback != null)
-				onErrorCallback.call(getKrollObject(), new KrollDict());
-		}
-
-		@Override
-		public void onSuccess(int status, Header[] header, byte[] response) {
-			String charset = "UTF-8";
-			for (int i = 0; i < header.length; i++) {
-				if (header[i].getName() == "Content-Type") {
-					String[] parts = header[i].getValue().split("; ");
-					if (parts != null) {
-						charset = parts[1].replace("charset=", "")
-								.toUpperCase();
-					}
-				}
-			}
-			String xml = "";
-			try {
-				xml = new String(response, charset);
-			} catch (UnsupportedEncodingException e1) {
-				e1.printStackTrace();
-			}
-			org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
-					.toJSONObject(xml);
-			JSONObject jsonresult = (JSONObject) de.appwerft.oaipmh.JSON
-					.toJSON(json);
-			Log.d(LCAT, jsonresult.toString());
-
-			try {
-				onLoadCallback
-						.call(getKrollObject(), new KrollDict(jsonresult));
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		}
-	}
-
 }

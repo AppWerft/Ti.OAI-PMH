@@ -29,11 +29,10 @@ var Provider = createProvider({
 After connecting with a provider you can ask all questions:
 
 ```javascript
-
-Provider.identify({
-   onload : function(e) {
+Provider.identify(
+    function(e) {
       console.log(e.data);
-   }
+   
 });
 ```
 This request give us [this answer](https://raw.githubusercontent.com/AppWerft/Ti.OAI-PMH/master/documentation/verb%3Didentify).
@@ -41,24 +40,23 @@ This request give us [this answer](https://raw.githubusercontent.com/AppWerft/Ti
 Now we can ask by filter:
 
 ```javascript
-Provider.listIdentifiers({
+Provider.ListIdentifiers({
    from : "1998-01-15",
-   metadataPrefix : "oldArXiv",
-   set : ["physics","hep"]
-   onload : function(e) {
+   metadataPrefix : "oai_dc",
+   },function(e) {
       console.log(e.data);
    }
-})
+)
 ```
 *listIdentifiers* returns a list if identifiers. Now you can ask:
 ```javascript
-Provider.getRecord({
+Provider.GetRecord({
    identifier : "oai:arXiv.org:hep-th/9901001",
-   metadataPrefix : "oai_dc",
-   onload : function(e) {
+   metadataPrefix : "oai_dc"},
+   function(e) {
       console.log(e.data);
    }
-})
+)
 ```
 
 

@@ -1,0 +1,69 @@
+{
+	"record": {
+		"header": {
+			"identifier": "oai:www.db-thueringen.de:dbt_mods_00030063",
+			"datestamp": "2016-09-21"
+		},
+		"metadata": {
+			"oai_dc:dc": {
+				"dc:rights": {
+					"list": [{
+						"content": "info:eu-repo/semantics/openAccess",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}, {
+						"content": "Alle Rechte vorbehalten",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}]
+				},
+				"dc:type": {
+					"list": [{
+						"content": "Text",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}, {
+						"content": "in_house",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}, {
+						"content": "doc-type:Other",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}]
+				},
+				"dc:subject": {
+					"list": [{
+						"content": "Serie",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}, {
+						"content": "ddc:370",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}]
+				},
+				"xmlns:oai_dc": "http://www.openarchives.org/OAI/2.0/oai_dc/",
+				"dc:format": {
+					"content": "75 Seiten",
+					"xmlns:opf": "http://www.idpf.org/2007/opf"
+				},
+				"dc:date": {
+					"list": [{
+						"content": "2016-09-06",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}, {
+						"content": "2015-11-25",
+						"xmlns:opf": "http://www.idpf.org/2007/opf"
+					}]
+				},
+				"dc:identifier": {
+					"list": ["https://www.db-thueringen.de/receive/dbt_mods_00030063", "https://www.db-thueringen.de/servlets/MCRFileNodeServlet/dbt_derivate_00036108/BA_AMW_2008_2015WS.pdf"]
+				},
+				"xsi:schemaLocation": "http://www.openarchives.org/OAI/2.0/oai_dc/  http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
+				"dc:language": {
+					"content": "deu",
+					"xmlns:opf": "http://www.idpf.org/2007/opf"
+				},
+				"dc:title": {
+					"content": "Modulhandbuch Bachelor Angewandte Medienwissenschaft: Studienordnungsversion: 2008",
+					"xmlns:opf": "http://www.idpf.org/2007/opf"
+				},
+				"xmlns:dc": "http://purl.org/dc/elements/1.1/"
+			}
+		}
+	}
+}

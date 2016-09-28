@@ -84,7 +84,9 @@ public class ProviderProxy extends KrollProxy {
 	public void ListRecords(
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, "ListRecords", null, getKrollObject(),
+		KrollDict options = new KrollDict();
+		options.put("metadataPrefix", "oai_dc");
+		new OAI_Adapter(ENDPOINT, "ListRecords", options, getKrollObject(),
 				_onload, _onerror);
 	}
 

@@ -14,11 +14,8 @@ import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
-import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiC;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.content.Context;
 
@@ -30,7 +27,6 @@ import cz.msebera.android.httpclient.Header;
 @Kroll.module(name = "Oaipmh", id = "de.appwerft.oaipmh")
 public class OaipmhModule extends KrollModule {
 	final String URL = "http://www.openarchives.org/pmh/registry/ListFriends";
-	private final String LCAT = "OAI";
 	private String filter;
 	private Context ctx = TiApplication.getInstance().getApplicationContext();
 	private KrollFunction onErrorCallback;

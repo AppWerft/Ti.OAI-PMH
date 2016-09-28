@@ -27,7 +27,6 @@ public class OAI_Identify {
 		final KrollObject kroll = _kroll;
 		this.ENDPOINT = _endpoint;
 		if (options != null) {
-			Log.d(LCAT, "start identify");
 			if (options.containsKeyAndNotNull(TiC.PROPERTY_ONLOAD)) {
 				Object cb = options.get(TiC.PROPERTY_ONLOAD);
 				if (cb instanceof KrollFunction) {
@@ -43,7 +42,8 @@ public class OAI_Identify {
 				}
 			}
 			AsyncHttpClient client = new AsyncHttpClient();
-			client.setConnectTimeout(3000);
+			client.setConnectTimeout(2000);
+			client.setMaxRetriesAndTimeout(0, 300);
 			String url = ENDPOINT + "?verb=Identify";
 			client.get(ctx, url, new AsyncHttpResponseHandler() {
 				@Override
@@ -57,17 +57,28 @@ public class OAI_Identify {
 				public void onSuccess(int status, Header[] header,
 						byte[] response) {
 					String xml = HTTPHelper.getBody(header, response);
-					Log.d(LCAT, xml.substring(0, 512));
-					if (!xml.contains("<?xml ")) {
+					if (xml.length() < 5 || !xml.contains("<?xml")) {
 						if (onErrorCallback != null) {
 							KrollDict dict = new KrollDict();
+							dict.put("error", "html");
 							dict.put("html", xml);
 							onErrorCallback.call(kroll, dict);
 						}
 						return;
 					}
-					org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
-							.toJSONObject(xml);
+					org.json.jsonjava.JSONObject json = new org.json.jsonjava.JSONObject();
+
+					try {
+						json = org.json.jsonjava.XML.toJSONObject(xml);
+					} catch (org.json.jsonjava.JSONException ex) {
+						if (onErrorCallback != null) {
+							KrollDict dict = new KrollDict();
+							dict.put("error", "cannot parse xml");
+							onErrorCallback.call(kroll, dict);
+						}
+
+					}
+
 					JSONObject jsonresult = (JSONObject) KrollHelper
 							.toKrollDict(json);
 					try {

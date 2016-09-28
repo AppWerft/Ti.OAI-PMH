@@ -5,9 +5,9 @@ import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollObject;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
-import org.appcelerator.titanium.TiC;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.apache.commons.lang3.StringEscapeUtils;
 
 import android.content.Context;
 
@@ -21,7 +21,7 @@ public class OAI_Adapter {
 	private String ENDPOINT;
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
-	private static final String LCAT = "OAI";
+	private static final String LCAT = "OAI 📖";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 
 	public OAI_Adapter(String _endpoint, String _verb, KrollDict _options,
@@ -57,22 +57,29 @@ public class OAI_Adapter {
 			@Override
 			public void onSuccess(int status, Header[] header, byte[] response) {
 				String xml = HTTPHelper.getBody(header, response);
+				Log.d(LCAT, "XML length=" + (xml.length()) / 1000 + "kB");
 				if (!xml.contains("<?xml ")) {
 					if (onErrorCallback != null) {
 						onErrorCallback.call(kroll, new KrollDict());
 					}
+					Log.e(LCAT,
+							"response is not valide XML:\n"
+									+ xml.substring(0, 512));
 					return;
 				}
 				org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
 						.toJSONObject(xml);
 				JSONObject jsonresult = (JSONObject) KrollHelper
 						.toKrollDict(json);
+				// StringEscapeUtils.unescapeHtml
+				Log.d(LCAT, "XML converting to JSON succeed");
 				Log.d(LCAT, jsonresult.toString());
 				if (onLoadCallback != null) {
+					Log.d(LCAT, "onLoadCallback != null");
 					try {
+						Log.d(LCAT, "onLoadCallback.call");
 						onLoadCallback.call(kroll, new KrollDict(jsonresult));
 					} catch (JSONException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				} else

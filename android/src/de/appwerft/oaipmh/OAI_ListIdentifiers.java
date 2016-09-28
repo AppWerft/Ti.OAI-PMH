@@ -16,7 +16,7 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 
 import cz.msebera.android.httpclient.Header;
 
-public class OAI_listIdentifiers {
+public class OAI_ListIdentifiers {
 	private static final String LCAT = "OAI";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 	private String ENDPOINT;
@@ -24,7 +24,7 @@ public class OAI_listIdentifiers {
 	KrollFunction onErrorCallback;
 	KrollFunction onLoadCallback;
 
-	public OAI_listIdentifiers(String _endpoint, KrollDict options,
+	public OAI_ListIdentifiers(String _endpoint, KrollDict options,
 			KrollObject _kroll) {
 		final KrollObject kroll = _kroll;
 		this.ENDPOINT = _endpoint;
@@ -44,8 +44,8 @@ public class OAI_listIdentifiers {
 				}
 			}
 			AsyncHttpClient client = new AsyncHttpClient();
-			client.setConnectTimeout(7000);
-			client.addHeader("Accept", "application/xml");
+			client.setConnectTimeout(30000);
+			client.addHeader("Accept", "text/xml");
 			String url = ENDPOINT
 					+ "?verb=ListIdentifiers&metadataPrefix=oai_dc";
 			Log.d(LCAT, ">>>>>>>>>>>>>>\n" + url);
@@ -61,7 +61,13 @@ public class OAI_listIdentifiers {
 				public void onSuccess(int status, Header[] header,
 						byte[] response) {
 					String xml = HTTPHelper.getBody(header, response);
-
+					Log.d(LCAT, xml.substring(0, 10));
+					if (!xml.contains("<?xml ")) {
+						if (onErrorCallback != null) {
+							onErrorCallback.call(kroll, new KrollDict());
+						}
+						return;
+					}
 					org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
 							.toJSONObject(xml);
 					JSONObject jsonresult = (JSONObject) KrollHelper

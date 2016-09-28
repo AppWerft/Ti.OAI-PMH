@@ -57,6 +57,15 @@ public class OAI_Identify {
 				public void onSuccess(int status, Header[] header,
 						byte[] response) {
 					String xml = HTTPHelper.getBody(header, response);
+					Log.d(LCAT, xml.substring(0, 512));
+					if (!xml.contains("<?xml ")) {
+						if (onErrorCallback != null) {
+							KrollDict dict = new KrollDict();
+							dict.put("html", xml);
+							onErrorCallback.call(kroll, dict);
+						}
+						return;
+					}
 					org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
 							.toJSONObject(xml);
 					JSONObject jsonresult = (JSONObject) KrollHelper

@@ -13,10 +13,11 @@ var OAIPMH = require("de.appwerft.oaipmh");
 First we can retreive a list of all providers:
 ```javascript
 OAIPMH.getList({
-   onload : function(e) {
+   filter : ".de",   // optional  
+   function(e) {
       console.log(e.data);
    }
-});
+);
 ```
 [Here the result](https://raw.githubusercontent.com/AppWerft/Ti.OAI-PMH/master/documentation/listproviders)
 
@@ -29,13 +30,25 @@ var Provider = createProvider({
 After connecting with a provider you can ask all questions:
 
 ```javascript
-Provider.identify(
+Provider.Identify(
     function(e) {
       console.log(e.data);
    
 });
 ```
 This request give us [this answer](https://raw.githubusercontent.com/AppWerft/Ti.OAI-PMH/master/documentation/verb%3Didentify).
+
+For getting the metadata formats:
+```javascript
+Provider.ListMetadataFormats(
+    function(e) {
+        console.log(e.data);
+    }
+);
+
+```
+
+
 
 Now we can ask by filter:
 

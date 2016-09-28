@@ -15,6 +15,7 @@ import java.util.HashMap;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
+import org.appcelerator.kroll.KrollObject;
 import org.appcelerator.kroll.KrollProxy;
 import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.kroll.common.Log;
@@ -62,17 +63,33 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void identify(KrollDict options) {
+	public void Identify(KrollDict options) {
 		new OAI_Identify(ENDPOINT, options, getKrollObject());
 	}
 
 	@Kroll.method
-	public void listIdentifiers(KrollDict options) {
-		new OAI_listIdentifiers(ENDPOINT, options, getKrollObject());
+	public void ListIdentifiers(KrollDict options) {
+		new OAI_ListIdentifiers(ENDPOINT, options, getKrollObject());
 	}
 
 	@Kroll.method
-	public void getRecord(KrollDict options) {
+	public void ListMetadataFormats(
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		new OAI_Adapter(ENDPOINT, "ListMetadataFormats", null,
+				getKrollObject(), _onload, _onerror);
+	}
+
+	@Kroll.method
+	public void ListRecords(
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		new OAI_Adapter(ENDPOINT, "ListRecords", null, getKrollObject(),
+				_onload, _onerror);
+	}
+
+	@Kroll.method
+	public void GetRecord(KrollDict options) {
 		new OAI_GetRecord(ENDPOINT, options, getKrollObject());
 	}
 }

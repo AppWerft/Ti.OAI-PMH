@@ -59,6 +59,7 @@ public class OaipmhModule extends KrollModule {
 			}
 		}
 		AsyncHttpClient client = new AsyncHttpClient();
+		client.setTimeout(30000);
 		client.get(ctx, URL, new XMLResponseHandler());
 	}
 
@@ -87,6 +88,12 @@ public class OaipmhModule extends KrollModule {
 				xml = new String(response, charset);
 			} catch (UnsupportedEncodingException e1) {
 				e1.printStackTrace();
+			}
+			if (!xml.contains("<?xml ")) {
+				if (onErrorCallback != null) {
+					onErrorCallback.call(getKrollObject(), new KrollDict());
+				}
+				return;
 			}
 			org.json.jsonjava.JSONArray providerlist = org.json.jsonjava.XML
 					.toJSONObject(xml).getJSONObject("BaseURLs")

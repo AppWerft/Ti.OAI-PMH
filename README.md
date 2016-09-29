@@ -85,6 +85,23 @@ Provider.GetRecord({
         console.log(err.message);
 );
 ```
+Now we can ask by available Metadataformats:
+
+```javascript
+Provider.ListMetadataFormats({
+    function(e) {
+        console.log(e["OAI-PMH"]);
+    },
+    function(err) {
+        console.log(err.message);
+    }
+);
+```
+
+You can persist the metadataPrefix by:
+```javascript
+Provider.setMetadataPrefix("oai_dc");
+```
 
 After all you can release by:
 ```javascript

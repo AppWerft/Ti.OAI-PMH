@@ -41,6 +41,8 @@ public class ProviderProxy extends KrollProxy {
 	private String ENDPOINT;
 	KrollFunction onErrorCallback;
 	KrollFunction onLoadCallback;
+	private int timeout = 10000;
+	private int retries = 0;
 
 	// Constructor
 	public ProviderProxy() {
@@ -59,6 +61,12 @@ public class ProviderProxy extends KrollProxy {
 				e.printStackTrace();
 			}
 		}
+		if (options.containsKeyAndNotNull(TiC.PROPERTY_TIMEOUT)) {
+			timeout = options.getInt(TiC.PROPERTY_TIMEOUT);
+		}
+		if (options.containsKeyAndNotNull("retries")) {
+			retries = options.getInt("retries");
+		}
 
 	}
 
@@ -66,8 +74,8 @@ public class ProviderProxy extends KrollProxy {
 	public void Identify(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, 1, 3000, "Identify", null, getKrollObject(),
-				_onload, _onerror);
+		new OAI_Adapter(ENDPOINT, retries, timeout, "Identify", null,
+				getKrollObject(), _onload, _onerror);
 	}
 
 	@Kroll.method
@@ -79,8 +87,8 @@ public class ProviderProxy extends KrollProxy {
 	public void ListMetadataFormats(
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, "ListMetadataFormats", null,
-				getKrollObject(), _onload, _onerror);
+		new OAI_Adapter(ENDPOINT, retries, timeout, "ListMetadataFormats",
+				null, getKrollObject(), _onload, _onerror);
 	}
 
 	@Kroll.method
@@ -89,8 +97,8 @@ public class ProviderProxy extends KrollProxy {
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
 		KrollDict options = new KrollDict();
 		options.put("metadataPrefix", "oai_dc");
-		new OAI_Adapter(ENDPOINT, "ListRecords", options, getKrollObject(),
-				_onload, _onerror);
+		new OAI_Adapter(ENDPOINT, retries, timeout, "ListRecords", options,
+				getKrollObject(), _onload, _onerror);
 	}
 
 	@Kroll.method

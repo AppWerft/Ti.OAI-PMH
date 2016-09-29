@@ -19,6 +19,8 @@ import cz.msebera.android.httpclient.Header;
 
 public class OAI_Adapter {
 	private String ENDPOINT;
+	private int timeout = 10000;
+	private int retries = 0;
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
 	private static final String LCAT = "OAI 📖";

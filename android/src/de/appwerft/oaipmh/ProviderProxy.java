@@ -63,8 +63,11 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void Identify(KrollDict options) {
-		new OAI_Identify(ENDPOINT, options, getKrollObject());
+	public void Identify(Object dummy,
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		new OAI_Adapter(ENDPOINT, 1, 3000, "Identify", null, getKrollObject(),
+				_onload, _onerror);
 	}
 
 	@Kroll.method

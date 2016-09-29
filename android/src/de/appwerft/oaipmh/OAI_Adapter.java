@@ -26,6 +26,12 @@ public class OAI_Adapter {
 
 	public OAI_Adapter(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
+		this(_endpoint, 0, 20000, _verb, _options, _kroll, _onload, _onerror);
+	}
+
+	public OAI_Adapter(String _endpoint, int retries, int connectTimeout,
+			String _verb, KrollDict _options, KrollObject _kroll,
+			Object _onload, Object _onerror) {
 		final KrollObject kroll = _kroll;
 		this.ENDPOINT = _endpoint;
 		if (_onload instanceof KrollFunction) {
@@ -41,51 +47,69 @@ public class OAI_Adapter {
 			for (String key : _options.keySet()) {
 				params.put(key, _options.get(key));
 			}
-		client.setConnectTimeout(5000);
+		client.setConnectTimeout(connectTimeout);
+		client.setMaxRetriesAndTimeout(retries, connectTimeout);
 		client.addHeader("Accept", "text/xml");
-
 		String url = ENDPOINT;
-		Log.d(LCAT, ">>>>>>>>>>>>>>\n" + url);
 		client.post(url, params, new AsyncHttpResponseHandler() {
 			@Override
 			public void onFailure(int status, Header[] header, byte[] response,
 					Throwable arg3) {
-				if (onErrorCallback != null)
-					onErrorCallback.call(kroll, new KrollDict());
+				if (onErrorCallback != null) {
+					KrollDict dict = new KrollDict();
+					dict.put("error", "timeout");
+					dict.put("message", "Timeout of server request");
+					onErrorCallback.call(kroll, dict);
+				}
 			}
 
 			@Override
 			public void onSuccess(int status, Header[] header, byte[] response) {
 				String xml = HTTPHelper.getBody(header, response);
-				Log.d(LCAT, "XML length=" + (xml.length()) / 1000 + "kB");
-				if (!xml.contains("<?xml ")) {
+				if (xml.length() < 5 || !xml.contains("<?xml")) {
 					if (onErrorCallback != null) {
-						onErrorCallback.call(kroll, new KrollDict());
+						KrollDict dict = new KrollDict();
+						dict.put("error", "html");
+						dict.put("html", xml);
+						dict.put("message", "Server answer is HTML.");
+						onErrorCallback.call(kroll, dict);
 					}
-					Log.e(LCAT,
-							"response is not valide XML:\n"
-									+ xml.substring(0, 512));
 					return;
 				}
-				org.json.jsonjava.JSONObject json = org.json.jsonjava.XML
-						.toJSONObject(xml);
+				org.json.jsonjava.JSONObject json = new org.json.jsonjava.JSONObject();
+
+				try {
+					json = org.json.jsonjava.XML.toJSONObject(xml);
+				} catch (org.json.jsonjava.JSONException ex) {
+					if (onErrorCallback != null) {
+						KrollDict dict = new KrollDict();
+						dict.put("error", "cannot parse xml");
+						dict.put("message", "Issues during XML parsing");
+						onErrorCallback.call(kroll, dict);
+					}
+				}
 				JSONObject jsonresult = (JSONObject) KrollHelper
 						.toKrollDict(json);
-				// StringEscapeUtils.unescapeHtml
-				Log.d(LCAT, "XML converting to JSON succeed");
-				Log.d(LCAT, jsonresult.toString());
-				if (onLoadCallback != null) {
-					Log.d(LCAT, "onLoadCallback != null");
-					try {
-						Log.d(LCAT, "onLoadCallback.call");
-						onLoadCallback.call(kroll, new KrollDict(jsonresult));
-					} catch (JSONException e) {
-						e.printStackTrace();
-					}
-				} else
-					Log.e(LCAT, "onLoadCallback missing");
+				if (onLoadCallback == null) {
+					Log.e(LCAT, "onLoadCallback is null");
+					return;
+				}
+				if (kroll == null) {
+					Log.e(LCAT, "kroll is null");
+					return;
+				}
+				if (jsonresult == null) {
+					Log.e(LCAT, "jsonresult is null");
+					return;
+				}
+				try {
+					onLoadCallback.call(kroll, new KrollDict(jsonresult));
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
 
 			}
+
 		});
 
 	}

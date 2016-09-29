@@ -26,6 +26,7 @@ Now we can present a list for the user, the user select one provider and now we 
 var Provider = createProvider({
     timeout : 10000, // optional
     retries : 0, // optional
+    escapeentities : true, // converts numeric code character entities (i.e. &#255; into ÿ) 
     url : "http://memory.loc.gov/cgi-bin/oai2_0"
 });
 ```

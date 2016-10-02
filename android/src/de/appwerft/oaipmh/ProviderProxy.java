@@ -8,41 +8,30 @@
  */
 package de.appwerft.oaipmh;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
-import org.appcelerator.kroll.KrollObject;
 import org.appcelerator.kroll.KrollProxy;
 import org.appcelerator.kroll.annotations.Kroll;
 import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiC;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.content.Context;
-
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.AsyncHttpResponseHandler;
-
-import cz.msebera.android.httpclient.Header;
 
 // This proxy can be created by calling Oaipmh.createExample({message: "hello world"})
 @Kroll.proxy(creatableInModule = OaipmhModule.class)
 public class ProviderProxy extends KrollProxy {
 	// Standard Debugging variables
-	private static final String LCAT = "OAI";
+	private static final String LCAT = "OAI 📙📕";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 	private String ENDPOINT;
 	KrollFunction onErrorCallback;
 	KrollFunction onLoadCallback;
-	private int timeout = 10000;
-	private int retries = 0;
+	private int timeout = 7000;
+	private int retries = 1;
 
 	// Constructor
 	public ProviderProxy() {
@@ -67,7 +56,6 @@ public class ProviderProxy extends KrollProxy {
 		if (options.containsKeyAndNotNull("retries")) {
 			retries = options.getInt("retries");
 		}
-
 	}
 
 	@Kroll.method
@@ -79,12 +67,15 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void ListIdentifiers(KrollDict options) {
-		new OAI_ListIdentifiers(ENDPOINT, options, getKrollObject());
+	public void ListIdentifiers(KrollDict _options,
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		new OAI_Adapter(ENDPOINT, retries, timeout, "ListIdentifiers",
+				_options, getKrollObject(), _onload, _onerror);
 	}
 
 	@Kroll.method
-	public void ListMetadataFormats(
+	public void ListMetadataFormats(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
 		new OAI_Adapter(ENDPOINT, retries, timeout, "ListMetadataFormats",
@@ -92,7 +83,7 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void ListRecords(
+	public void ListRecords(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
 		KrollDict options = new KrollDict();
@@ -102,7 +93,18 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void GetRecord(KrollDict options) {
-		new OAI_GetRecord(ENDPOINT, options, getKrollObject());
+	public void GetRecord(KrollDict _options,
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		new OAI_Adapter(ENDPOINT, retries, timeout, "GetRecord", _options,
+				getKrollObject(), _onload, _onerror);
+	}
+
+	@Kroll.method
+	public void ListSets(Object dummy,
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		new OAI_Adapter(ENDPOINT, retries, timeout, "ListSets", null,
+				getKrollObject(), _onload, _onerror);
 	}
 }

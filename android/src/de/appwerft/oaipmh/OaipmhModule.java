@@ -9,15 +9,19 @@
 package de.appwerft.oaipmh;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollModule;
 import org.appcelerator.kroll.annotations.Kroll;
+import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
 import org.appcelerator.titanium.TiC;
 
 import android.content.Context;
+import android.net.Uri;
 
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
@@ -28,9 +32,13 @@ import cz.msebera.android.httpclient.Header;
 public class OaipmhModule extends KrollModule {
 	final String URL = "http://www.openarchives.org/pmh/registry/ListFriends";
 	private String filter;
+	private static final String LCAT = "OAI 📙📕";
 	private Context ctx = TiApplication.getInstance().getApplicationContext();
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
+	private KrollFunction onProgressCallback;
+	private long startTime;
+	final int TIMEOUT = 20000;
 
 	public OaipmhModule() {
 		super();
@@ -54,22 +62,51 @@ public class OaipmhModule extends KrollModule {
 				this.onErrorCallback = (KrollFunction) cb;
 			}
 		}
+		if (options.containsKeyAndNotNull("onprogress")) {
+			Object cb = options.get("onprogress");
+			if (cb instanceof KrollFunction) {
+				this.onProgressCallback = (KrollFunction) cb;
+			}
+		}
 		AsyncHttpClient client = new AsyncHttpClient();
-		client.setTimeout(30000);
+		client.setTimeout(TIMEOUT);
+		client.setConnectTimeout(10000);
+		startTime = System.currentTimeMillis();
 		client.get(ctx, URL, new XMLResponseHandler());
 	}
 
 	private final class XMLResponseHandler extends AsyncHttpResponseHandler {
 		@Override
+		public void onProgress(long bytesWritten, long totalSize) {
+			if (onProgressCallback != null) {
+
+				KrollDict dict = new KrollDict();
+				onProgressCallback.call(getKrollObject(), dict);
+			}
+		}
+
+		@Override
 		public void onFailure(int status, Header[] header, byte[] response,
 				Throwable arg3) {
-			if (onErrorCallback != null)
-				onErrorCallback.call(getKrollObject(), new KrollDict());
+			if (onErrorCallback != null) {
+				KrollDict dict = new KrollDict();
+				if (System.currentTimeMillis() - startTime < 1000) {
+					dict.put("error", "offline");
+					Log.d(LCAT, "diff="
+							+ (System.currentTimeMillis() - startTime));
+					dict.put("message", "No internet connection");
+				} else {
+					dict.put("error", "timeout");
+					dict.put("message", "Server don't answer in 30 sec. ");
+				}
+				onErrorCallback.call(getKrollObject(), dict);
+			}
 		}
 
 		@Override
 		public void onSuccess(int status, Header[] header, byte[] response) {
 			String charset = "UTF-8";
+			KrollDict err = new KrollDict();
 			for (int i = 0; i < header.length; i++) {
 				if (header[i].getName() == "Content-Type") {
 					String[] parts = header[i].getValue().split("; ");
@@ -85,10 +122,13 @@ public class OaipmhModule extends KrollModule {
 			} catch (UnsupportedEncodingException e1) {
 				e1.printStackTrace();
 			}
-			if (!xml.contains("<?xml ")) {
+			if (!xml.contains("<?xml")) {
 				if (onErrorCallback != null) {
-					onErrorCallback.call(getKrollObject(), new KrollDict());
-				}
+					err.put("error", "html");
+					err.put("message", "Cannot parse HTML");
+					onErrorCallback.call(getKrollObject(), err);
+				} else
+					Log.e(LCAT, "onerror is missing");
 				return;
 			}
 			org.json.jsonjava.JSONArray providerlist = org.json.jsonjava.XML
@@ -105,10 +145,17 @@ public class OaipmhModule extends KrollModule {
 					String id = provider.getString("id");
 					if (filter == null || url.contains(filter))
 						providers.put(id, url);
+				} else if (obj instanceof String) {
+					String url = (String) obj;
+					final URI uri;
+					try {
+						uri = new URI(url);
+						providers.put("id", uri.getHost());
+					} catch (URISyntaxException e) {
+						e.printStackTrace();
+					}
 				}
 
-				// res.put(provider.getString("id"),
-				// provider.getString("content"));
 			}
 			res.put("providers", providers);
 			if (onLoadCallback != null)

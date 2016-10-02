@@ -1,5 +1,6 @@
 package de.appwerft.oaipmh;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollObject;
@@ -7,7 +8,6 @@ import org.appcelerator.kroll.common.Log;
 import org.appcelerator.titanium.TiApplication;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.apache.commons.lang3.StringEscapeUtils;
 
 import android.content.Context;
 
@@ -19,8 +19,7 @@ import cz.msebera.android.httpclient.Header;
 
 public class OAI_Adapter {
 	private String ENDPOINT;
-	private int timeout = 10000;
-	private int retries = 0;
+
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
 	private static final String LCAT = "OAI 📖";
@@ -31,11 +30,14 @@ public class OAI_Adapter {
 		this(_endpoint, 0, 20000, _verb, _options, _kroll, _onload, _onerror);
 	}
 
-	public OAI_Adapter(String _endpoint, int retries, int connectTimeout,
+	public OAI_Adapter(String _endpoint, int retries, final int connectTimeout,
 			String _verb, KrollDict _options, KrollObject _kroll,
 			Object _onload, Object _onerror) {
 		final KrollObject kroll = _kroll;
 		this.ENDPOINT = _endpoint;
+		Log.d(LCAT,
+				"=========================================================\n verb = "
+						+ _verb);
 		if (_onload instanceof KrollFunction) {
 			onLoadCallback = (KrollFunction) _onload;
 		}
@@ -45,10 +47,13 @@ public class OAI_Adapter {
 		AsyncHttpClient client = new AsyncHttpClient();
 		RequestParams params = new RequestParams();
 		params.put("verb", _verb);
-		if (_options != null)
+		if (_options != null) {
+			Log.d(LCAT, _options.toString());
 			for (String key : _options.keySet()) {
 				params.put(key, _options.get(key));
 			}
+		} else
+			Log.w(LCAT, "_options are empty");
 		client.setConnectTimeout(connectTimeout);
 		client.setMaxRetriesAndTimeout(retries, connectTimeout);
 		client.addHeader("Accept", "text/xml");
@@ -58,9 +63,12 @@ public class OAI_Adapter {
 			public void onFailure(int status, Header[] header, byte[] response,
 					Throwable arg3) {
 				if (onErrorCallback != null) {
+					Log.d(LCAT, "STATUS=" + status);
+
 					KrollDict dict = new KrollDict();
 					dict.put("error", "timeout");
-					dict.put("message", "Timeout of server request");
+					dict.put("message", "Server don't answer in  "
+							+ connectTimeout + "ms");
 					onErrorCallback.call(kroll, dict);
 				}
 			}
@@ -79,9 +87,10 @@ public class OAI_Adapter {
 					return;
 				}
 				org.json.jsonjava.JSONObject json = new org.json.jsonjava.JSONObject();
-
 				try {
-					json = org.json.jsonjava.XML.toJSONObject(xml);
+					Log.d(LCAT, xml);
+					String escapedXml = xml;// StringEscapeUtils.unescapeHtml(xml);
+					json = org.json.jsonjava.XML.toJSONObject(escapedXml);
 				} catch (org.json.jsonjava.JSONException ex) {
 					if (onErrorCallback != null) {
 						KrollDict dict = new KrollDict();
@@ -92,18 +101,6 @@ public class OAI_Adapter {
 				}
 				JSONObject jsonresult = (JSONObject) KrollHelper
 						.toKrollDict(json);
-				if (onLoadCallback == null) {
-					Log.e(LCAT, "onLoadCallback is null");
-					return;
-				}
-				if (kroll == null) {
-					Log.e(LCAT, "kroll is null");
-					return;
-				}
-				if (jsonresult == null) {
-					Log.e(LCAT, "jsonresult is null");
-					return;
-				}
 				try {
 					onLoadCallback.call(kroll, new KrollDict(jsonresult));
 				} catch (JSONException e) {

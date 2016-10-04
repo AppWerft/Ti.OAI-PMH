@@ -32,6 +32,7 @@ public class ProviderProxy extends KrollProxy {
 	KrollFunction onLoadCallback;
 	private int timeout = 7000;
 	private int retries = 1;
+	public boolean stopped = false;
 
 	// Constructor
 	public ProviderProxy() {
@@ -59,6 +60,11 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
+	public void abort() {
+		onLoadCallback = null;
+	}
+
+	@Kroll.method
 	public void Identify(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
@@ -83,12 +89,11 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void ListRecords(Object dummy,
+	public void ListRecords(KrollDict _options,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		KrollDict options = new KrollDict();
-		options.put("metadataPrefix", "oai_dc");
-		new OAI_Adapter(ENDPOINT, retries, timeout, "ListRecords", options,
+		_options.put("metadataPrefix", "oai_dc");
+		new OAI_Adapter(ENDPOINT, retries, timeout, "ListRecords", _options,
 				getKrollObject(), _onload, _onerror);
 	}
 

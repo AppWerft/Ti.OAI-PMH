@@ -19,25 +19,23 @@ import cz.msebera.android.httpclient.Header;
 
 public class OAI_Adapter {
 	private String ENDPOINT;
-
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
 	private static final String LCAT = "OAI 📖";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
+	private long startTime;
 
 	public OAI_Adapter(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
 		this(_endpoint, 0, 20000, _verb, _options, _kroll, _onload, _onerror);
 	}
 
-	public OAI_Adapter(String _endpoint, int retries, final int connectTimeout,
-			String _verb, KrollDict _options, KrollObject _kroll,
-			Object _onload, Object _onerror) {
+	public OAI_Adapter(final String _endpoint, final int retries,
+			final int connectTimeout, final String _verb,
+			final KrollDict _options, final KrollObject _kroll,
+			final Object _onload, final Object _onerror) {
 		final KrollObject kroll = _kroll;
 		this.ENDPOINT = _endpoint;
-		Log.d(LCAT,
-				"=========================================================\n verb = "
-						+ _verb);
 		if (_onload instanceof KrollFunction) {
 			onLoadCallback = (KrollFunction) _onload;
 		}
@@ -45,30 +43,38 @@ public class OAI_Adapter {
 			onErrorCallback = (KrollFunction) _onerror;
 		}
 		AsyncHttpClient client = new AsyncHttpClient();
-		RequestParams params = new RequestParams();
-		params.put("verb", _verb);
+		RequestParams requestParams = new RequestParams();
+		requestParams.put("verb", _verb);
 		if (_options != null) {
-			Log.d(LCAT, _options.toString());
 			for (String key : _options.keySet()) {
-				params.put(key, _options.get(key));
+				requestParams.put(key, _options.get(key));
+				Log.d(LCAT,
+						key + " " + _options.get(key)
+								+ requestParams.toString());
 			}
 		} else
 			Log.w(LCAT, "_options are empty");
 		client.setConnectTimeout(connectTimeout);
+		Log.d(LCAT, "===================\nURL");
+		Log.d(LCAT, ENDPOINT + "?" + requestParams.toString());
 		client.setMaxRetriesAndTimeout(retries, connectTimeout);
 		client.addHeader("Accept", "text/xml");
-		String url = ENDPOINT;
-		client.post(url, params, new AsyncHttpResponseHandler() {
+		startTime = System.currentTimeMillis();
+		client.post(ENDPOINT, requestParams, new AsyncHttpResponseHandler() {
 			@Override
 			public void onFailure(int status, Header[] header, byte[] response,
 					Throwable arg3) {
 				if (onErrorCallback != null) {
-					Log.d(LCAT, "STATUS=" + status);
-
 					KrollDict dict = new KrollDict();
-					dict.put("error", "timeout");
-					dict.put("message", "Server don't answer in  "
-							+ connectTimeout + "ms");
+					if (System.currentTimeMillis() - startTime < 1000) {
+						dict.put("error", "offline");
+						dict.put("message", "Host not reachable");
+					} else {
+						dict.put("error", "timeout");
+						dict.put("time", ""
+								+ (System.currentTimeMillis() - startTime));
+						dict.put("message", "Server don't answer in 30 sec. ");
+					}
 					onErrorCallback.call(kroll, dict);
 				}
 			}
@@ -88,7 +94,6 @@ public class OAI_Adapter {
 				}
 				org.json.jsonjava.JSONObject json = new org.json.jsonjava.JSONObject();
 				try {
-					Log.d(LCAT, xml);
 					String escapedXml = xml;// StringEscapeUtils.unescapeHtml(xml);
 					json = org.json.jsonjava.XML.toJSONObject(escapedXml);
 				} catch (org.json.jsonjava.JSONException ex) {
@@ -102,11 +107,32 @@ public class OAI_Adapter {
 				JSONObject jsonresult = (JSONObject) KrollHelper
 						.toKrollDict(json);
 				try {
-					onLoadCallback.call(kroll, new KrollDict(jsonresult));
+					if (onLoadCallback != null)
+						onLoadCallback.call(kroll, new KrollDict(jsonresult));
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
+				if (jsonresult.has("OAI-PMH")) {
+					try {
+						JSONObject oai = jsonresult.getJSONObject("OAI-PMH");
+						if (oai.has(_verb)) {
+							Log.d(LCAT, _verb + "_found");
+							JSONObject record = oai.getJSONObject(_verb);
+							if (record.has("resumptionToken")) {
+								String resumptionToken = record.getJSONObject(
+										"resumptionToken").getString("content");
 
+								_options.put("resumptionToken", resumptionToken);
+								Log.d(LCAT, "resumptionToken" + resumptionToken
+										+ " found");
+								new OAI_Adapter(_endpoint, _verb, _options,
+										_kroll, _onload, _onerror);
+							}
+						}
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 
 		});

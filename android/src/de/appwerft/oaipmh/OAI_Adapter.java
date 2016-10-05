@@ -24,27 +24,44 @@ public class OAI_Adapter {
 	private static final String LCAT = "OAI 📖";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 	private long startTime;
+	private String verb;
+	private int retries;
+	private int connectTimeout;
+	private KrollObject kroll;
+	private boolean stopped = false;
 
 	public OAI_Adapter(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
 		this(_endpoint, 0, 20000, _verb, _options, _kroll, _onload, _onerror);
 	}
 
-	public OAI_Adapter(final String _endpoint, final int retries,
-			final int connectTimeout, final String _verb,
-			final KrollDict _options, final KrollObject _kroll,
-			final Object _onload, final Object _onerror) {
-		final KrollObject kroll = _kroll;
+	public OAI_Adapter(final String _endpoint, final int _retries,
+			int _connectTimeout, String _verb, KrollDict _options,
+			KrollObject _kroll, Object _onload, Object _onerror) {
+		this.kroll = _kroll;
 		this.ENDPOINT = _endpoint;
+		this.verb = _verb;
+		this.retries = _retries;
+		this.connectTimeout = _connectTimeout;
 		if (_onload instanceof KrollFunction) {
-			onLoadCallback = (KrollFunction) _onload;
+			this.onLoadCallback = (KrollFunction) _onload;
 		}
 		if (_onerror instanceof KrollFunction) {
-			onErrorCallback = (KrollFunction) _onerror;
+			this.onErrorCallback = (KrollFunction) _onerror;
 		}
+		doRequest(_options);
+	}
+
+	public void release() {
+		stopped = true;
+	}
+
+	private void doRequest(final KrollDict _options) {
+		if (stopped)
+			return;
 		AsyncHttpClient client = new AsyncHttpClient();
 		RequestParams requestParams = new RequestParams();
-		requestParams.put("verb", _verb);
+		requestParams.put("verb", verb);
 		if (_options != null) {
 			for (String key : _options.keySet()) {
 				requestParams.put(key, _options.get(key));
@@ -115,9 +132,8 @@ public class OAI_Adapter {
 				if (jsonresult.has("OAI-PMH")) {
 					try {
 						JSONObject oai = jsonresult.getJSONObject("OAI-PMH");
-						if (oai.has(_verb)) {
-							Log.d(LCAT, _verb + "_found");
-							JSONObject record = oai.getJSONObject(_verb);
+						if (oai.has(verb)) {
+							JSONObject record = oai.getJSONObject(verb);
 							if (record.has("resumptionToken")) {
 								String resumptionToken = record.getJSONObject(
 										"resumptionToken").getString("content");
@@ -125,8 +141,7 @@ public class OAI_Adapter {
 								_options.put("resumptionToken", resumptionToken);
 								Log.d(LCAT, "resumptionToken" + resumptionToken
 										+ " found");
-								new OAI_Adapter(_endpoint, _verb, _options,
-										_kroll, _onload, _onerror);
+								doRequest(_options);
 							}
 						}
 					} catch (JSONException e) {
@@ -134,8 +149,6 @@ public class OAI_Adapter {
 					}
 				}
 			}
-
 		});
-
 	}
 }

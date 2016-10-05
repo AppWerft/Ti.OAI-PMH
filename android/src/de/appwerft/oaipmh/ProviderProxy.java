@@ -33,7 +33,7 @@ public class ProviderProxy extends KrollProxy {
 	KrollFunction onLoadCallback;
 	private int timeout = 7000;
 	private int retries = 1;
-	private int requestId = 0;
+	private int requestId = -1;
 	private HashMap<Integer, OAIRequester> requesters = new HashMap<Integer, OAIRequester>();
 
 	// Constructor
@@ -66,16 +66,13 @@ public class ProviderProxy extends KrollProxy {
 		if (requesters.containsKey(requestId)) {
 			OAIRequester request = requesters.get(requestId);
 			if (request != null) {
-				Log.d(LCAT,
-						"Request with requestId " + requestId
-								+ request.toString());
+				Log.d(LCAT, request.toString());
 				request.abort();
 			} else
 				Log.w(LCAT, "request " + requestId + " was null.");
 			requesters.remove(requestId);
 		} else
 			Log.w(LCAT, "no request with id " + requestId + " found.");
-
 	}
 
 	@Kroll.method
@@ -85,6 +82,7 @@ public class ProviderProxy extends KrollProxy {
 		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
 				"Identify", null, getKrollObject(), _onload, _onerror);
 		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
 		return requestId;
 	}
 
@@ -96,6 +94,7 @@ public class ProviderProxy extends KrollProxy {
 				"ListIdentifiers", _options, getKrollObject(), _onload,
 				_onerror);
 		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
 		return requestId;
 	}
 
@@ -107,6 +106,7 @@ public class ProviderProxy extends KrollProxy {
 				"ListMetadataFormats", null, getKrollObject(), _onload,
 				_onerror);
 		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
 		return requestId;
 	}
 
@@ -118,6 +118,7 @@ public class ProviderProxy extends KrollProxy {
 		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
 				"ListRecords", _options, getKrollObject(), _onload, _onerror);
 		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
 		return requestId;
 	}
 
@@ -128,14 +129,18 @@ public class ProviderProxy extends KrollProxy {
 		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
 				"GetRecord", _options, getKrollObject(), _onload, _onerror);
 		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
 		return requestId;
 	}
 
 	@Kroll.method
-	public void ListSets(Object dummy,
+	public int ListSets(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAIRequester(ENDPOINT, retries, timeout, "ListSets", null,
-				getKrollObject(), _onload, _onerror);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"ListSets", null, getKrollObject(), _onload, _onerror);
+		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
+		return requestId;
 	}
 }

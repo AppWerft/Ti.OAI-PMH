@@ -4,12 +4,17 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
 import org.appcelerator.kroll.KrollObject;
+import org.appcelerator.kroll.common.AsyncResult;
 import org.appcelerator.kroll.common.Log;
+import org.appcelerator.kroll.common.TiMessenger;
 import org.appcelerator.titanium.TiApplication;
+import org.appcelerator.titanium.util.TiConvert;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Message;
 
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
@@ -24,13 +29,16 @@ public class OAIRequester {
 	private static final String LCAT = "OAI 📖";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 	private long startTime;
+	private long mainstartTime = System.currentTimeMillis();
 	private String verb;
 	private int retries;
 	private int connectTimeout;
 	private KrollObject kroll;
-	private boolean stopped = false;
+	public boolean aborted = false;
 	AsyncHttpClient client;
 	private int page = 0;
+	private int requestId = -1;
+	final int MSG_DO_NEXTREQUEST = 1;
 
 	public OAIRequester(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
@@ -54,36 +62,37 @@ public class OAIRequester {
 		doRequest(_options);
 	}
 
+	public void setRequestId(int requestId) {
+		this.requestId = requestId;
+	}
+
 	public void abort() {
-		stopped = true;
-		client.cancelAllRequests(true);
-		this.onLoadCallback = null;
-		this.onErrorCallback = null;
+		this.aborted = true;
 	}
 
 	@Override
 	public String toString() {
-		return "{verb : " + this.verb + ", page : " + page + ", duration : "
-				+ (System.currentTimeMillis() - startTime) + "}";
+		return "{requestId : " + requestId + ", verb : " + this.verb
+				+ ", page : " + page + ", duration : "
+				+ (System.currentTimeMillis() - mainstartTime) + "}";
 	}
 
 	private void doRequest(final KrollDict _options) {
-		if (stopped == true)
+		if (this.aborted == true) {
+			Log.d(LCAT, "requester want request, but should stopp");
 			return;
+		} else
+			Log.d(LCAT, "doRequest without aborting");
 		client = new AsyncHttpClient();
 		RequestParams requestParams = new RequestParams();
 		requestParams.put("verb", verb);
 		if (_options != null) {
 			for (String key : _options.keySet()) {
 				requestParams.put(key, _options.get(key));
-				Log.d(LCAT,
-						key + " " + _options.get(key)
-								+ requestParams.toString());
 			}
 		} else
 			Log.w(LCAT, "_options are empty");
 		client.setConnectTimeout(connectTimeout);
-		Log.d(LCAT, "===================\nURL");
 		Log.d(LCAT, ENDPOINT + "?" + requestParams.toString());
 		client.setMaxRetriesAndTimeout(retries, connectTimeout);
 		client.addHeader("Accept", "text/xml");
@@ -109,6 +118,11 @@ public class OAIRequester {
 
 			@Override
 			public void onSuccess(int status, Header[] header, byte[] response) {
+				if (aborted != false) {
+					Log.d(LCAT, "aborted. no proceeding in onSuccess() is need");
+					return;
+				} else
+					Log.d(LCAT, "not yet aborted");
 				String xml = HTTPHelper.getBody(header, response);
 				if (xml.length() < 5 || !xml.contains("<?xml")) {
 					if (onErrorCallback != null) {
@@ -140,26 +154,36 @@ public class OAIRequester {
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
-				if (jsonresult.has("OAI-PMH")) {
-					try {
-						JSONObject oai = jsonresult.getJSONObject("OAI-PMH");
-						if (oai.has(verb)) {
-							JSONObject record = oai.getJSONObject(verb);
-							if (record.has("resumptionToken")) {
-								String resumptionToken = record.getJSONObject(
-										"resumptionToken").getString("content");
 
-								_options.put("resumptionToken", resumptionToken);
-								Log.d(LCAT, "resumptionToken" + resumptionToken
-										+ " found");
-								page++;
-								doRequest(_options);
-							}
-						}
-					} catch (JSONException e) {
-						e.printStackTrace();
-					}
+				try {
+					String resumptionToken = jsonresult
+							.getJSONObject("OAI-PMH").getJSONObject(verb)
+							.getJSONObject("resumptionToken")
+							.getString("content");
+					_options.put("resumptionToken", resumptionToken);
+					page++;
+					// send a message to main thread to
+					// doRequest
+					TiMessenger.sendBlockingMainMessage(new Handler(TiMessenger
+							.getMainMessenger().getLooper(),
+							new Handler.Callback() {
+								public boolean handleMessage(Message msg) {
+									switch (msg.what) {
+									case MSG_DO_NEXTREQUEST: {
+										doRequest(_options);
+										AsyncResult result = (AsyncResult) msg.obj;
+										result.setResult(null);
+										return true;
+									}
+									}
+									return false;
+								}
+							}).obtainMessage(MSG_DO_NEXTREQUEST, _options));
+
+				} catch (JSONException e) {
+					e.printStackTrace();
 				}
+
 			}
 		});
 	}

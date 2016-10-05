@@ -33,7 +33,7 @@ var Provider = createProvider({
 After connecting with a provider you can ask all questions:
 
 ```javascript
-Provider.Identify(
+var requestId = Provider.Identify(
     null,  // dummy for clean code
     function(e) {
       console.log(e["OAI-PMH"]);
@@ -47,7 +47,7 @@ This request give us [this answer](https://raw.githubusercontent.com/AppWerft/Ti
 
 For getting the metadata formats:
 ```javascript
-Provider.ListMetadataFormats(
+var requestId = Provider.ListMetadataFormats(
     null,  // dummy for clean code
     function(e) {
         console.log(e["OAI-PMH"]);
@@ -62,7 +62,7 @@ Provider.ListMetadataFormats(
 Now we can ask by filter:
 
 ```javascript
-Provider.ListIdentifiers({
+var requestId = Provider.ListIdentifiers({
     from : "1998-01-15",
     until :  "1999-01-15",
     metadataPrefix : "oai_dc",
@@ -76,7 +76,7 @@ Provider.ListIdentifiers({
 ```
 *listIdentifiers* returns a list if identifiers. Now you can ask:
 ```javascript
-Provider.GetRecord({
+var requestId =  Provider.GetRecord({
         identifier : "oai:arXiv.org:hep-th/9901001",
         metadataPrefix : "oai_dc"},
     function(e) {
@@ -89,7 +89,7 @@ Provider.GetRecord({
 Now we can ask by available Metadataformats:
 
 ```javascript
-Provider.ListMetadataFormats({
+var requestId = Provider.ListMetadataFormats({
     function(e) {
         console.log(e["OAI-PMH"]);
     },
@@ -107,4 +107,9 @@ Provider.setMetadataPrefix("oai_dc");
 After all you can release by:
 ```javascript
 Provider.close();
+```
+
+Some requests works with pagination, you can stop it by:
+```javascript
+Provider.abort(requestId);
 ```

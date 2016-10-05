@@ -59,6 +59,10 @@ public class OAIRequester {
 		this.onErrorCallback = null;
 	}
 
+	public String getVerb() {
+		return this.verb;
+	}
+
 	private void doRequest(final KrollDict _options) {
 		if (stopped)
 			return;

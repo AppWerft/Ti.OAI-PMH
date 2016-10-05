@@ -10,6 +10,7 @@ package de.appwerft.oaipmh;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 
 import org.appcelerator.kroll.KrollDict;
 import org.appcelerator.kroll.KrollFunction;
@@ -32,7 +33,8 @@ public class ProviderProxy extends KrollProxy {
 	KrollFunction onLoadCallback;
 	private int timeout = 7000;
 	private int retries = 1;
-	public boolean stopped = false;
+	private int requestId = 0;
+	private HashMap<Integer, OAIRequester> requesters;
 
 	// Constructor
 	public ProviderProxy() {
@@ -60,56 +62,73 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void abort() {
-		onLoadCallback = null;
+	public void abort(int requestId) {
+		if (requesters.containsKey(requestId)) {
+			OAIRequester request = requesters.get(requestId);
+			requesters.remove(requestId);
+		} else
+			Log.d(LCAT, "no request with id " + requestId + " found.");
+
 	}
 
 	@Kroll.method
-	public void Identify(Object dummy,
+	public int Identify(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, retries, timeout, "Identify", null,
-				getKrollObject(), _onload, _onerror);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"Identify", null, getKrollObject(), _onload, _onerror);
+		requesters.put(++requestId, request);
+		return requestId;
 	}
 
 	@Kroll.method
-	public void ListIdentifiers(KrollDict _options,
+	public int ListIdentifiers(KrollDict _options,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, retries, timeout, "ListIdentifiers",
-				_options, getKrollObject(), _onload, _onerror);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"ListIdentifiers", _options, getKrollObject(), _onload,
+				_onerror);
+		requesters.put(++requestId, request);
+		return requestId;
 	}
 
 	@Kroll.method
-	public void ListMetadataFormats(Object dummy,
+	public int ListMetadataFormats(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, retries, timeout, "ListMetadataFormats",
-				null, getKrollObject(), _onload, _onerror);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"ListMetadataFormats", null, getKrollObject(), _onload,
+				_onerror);
+		requesters.put(++requestId, request);
+		return requestId;
 	}
 
 	@Kroll.method
-	public void ListRecords(KrollDict _options,
+	public int ListRecords(KrollDict _options,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
 		_options.put("metadataPrefix", "oai_dc");
-		new OAI_Adapter(ENDPOINT, retries, timeout, "ListRecords", _options,
-				getKrollObject(), _onload, _onerror);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"ListRecords", _options, getKrollObject(), _onload, _onerror);
+		requesters.put(++requestId, request);
+		return requestId;
 	}
 
 	@Kroll.method
-	public void GetRecord(KrollDict _options,
+	public int GetRecord(KrollDict _options,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, retries, timeout, "GetRecord", _options,
-				getKrollObject(), _onload, _onerror);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"GetRecord", _options, getKrollObject(), _onload, _onerror);
+		requesters.put(++requestId, request);
+		return requestId;
 	}
 
 	@Kroll.method
 	public void ListSets(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		new OAI_Adapter(ENDPOINT, retries, timeout, "ListSets", null,
+		new OAIRequester(ENDPOINT, retries, timeout, "ListSets", null,
 				getKrollObject(), _onload, _onerror);
 	}
 }

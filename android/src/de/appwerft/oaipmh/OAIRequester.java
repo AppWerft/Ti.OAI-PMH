@@ -17,7 +17,7 @@ import com.loopj.android.http.RequestParams;
 
 import cz.msebera.android.httpclient.Header;
 
-public class OAI_Adapter {
+public class OAIRequester {
 	private String ENDPOINT;
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
@@ -30,12 +30,12 @@ public class OAI_Adapter {
 	private KrollObject kroll;
 	private boolean stopped = false;
 
-	public OAI_Adapter(String _endpoint, String _verb, KrollDict _options,
+	public OAIRequester(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
 		this(_endpoint, 0, 20000, _verb, _options, _kroll, _onload, _onerror);
 	}
 
-	public OAI_Adapter(final String _endpoint, final int _retries,
+	public OAIRequester(final String _endpoint, final int _retries,
 			int _connectTimeout, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
 		this.kroll = _kroll;

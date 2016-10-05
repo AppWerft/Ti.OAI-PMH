@@ -30,6 +30,7 @@ public class OAIRequester {
 	private KrollObject kroll;
 	private boolean stopped = false;
 	AsyncHttpClient client;
+	private int page = 0;
 
 	public OAIRequester(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
@@ -54,17 +55,20 @@ public class OAIRequester {
 	}
 
 	public void abort() {
+		stopped = true;
 		client.cancelAllRequests(true);
 		this.onLoadCallback = null;
 		this.onErrorCallback = null;
 	}
 
-	public String getVerb() {
-		return this.verb;
+	@Override
+	public String toString() {
+		return "{verb : " + this.verb + ", page : " + page + ", duration : "
+				+ (System.currentTimeMillis() - startTime) + "}";
 	}
 
 	private void doRequest(final KrollDict _options) {
-		if (stopped)
+		if (stopped == true)
 			return;
 		client = new AsyncHttpClient();
 		RequestParams requestParams = new RequestParams();
@@ -148,6 +152,7 @@ public class OAIRequester {
 								_options.put("resumptionToken", resumptionToken);
 								Log.d(LCAT, "resumptionToken" + resumptionToken
 										+ " found");
+								page++;
 								doRequest(_options);
 							}
 						}

@@ -34,7 +34,7 @@ public class ProviderProxy extends KrollProxy {
 	private int timeout = 7000;
 	private int retries = 1;
 	private int requestId = 0;
-	private HashMap<Integer, OAIRequester> requesters;
+	private HashMap<Integer, OAIRequester> requesters = new HashMap<Integer, OAIRequester>();
 
 	// Constructor
 	public ProviderProxy() {
@@ -62,12 +62,15 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public void abort(int requestId) {
+	public void abort(@Kroll.argument(optional = true) int requestId) {
 		if (requesters.containsKey(requestId)) {
 			OAIRequester request = requesters.get(requestId);
-			if (request != null)
+			if (request != null) {
+				Log.d(LCAT,
+						"Request with requestId " + requestId
+								+ request.toString());
 				request.abort();
-			else
+			} else
 				Log.w(LCAT, "request " + requestId + " was null.");
 			requesters.remove(requestId);
 		} else

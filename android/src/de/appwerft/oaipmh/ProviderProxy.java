@@ -65,6 +65,7 @@ public class ProviderProxy extends KrollProxy {
 	public void abort(int requestId) {
 		if (requesters.containsKey(requestId)) {
 			OAIRequester request = requesters.get(requestId);
+			request.abort();
 			requesters.remove(requestId);
 		} else
 			Log.d(LCAT, "no request with id " + requestId + " found.");

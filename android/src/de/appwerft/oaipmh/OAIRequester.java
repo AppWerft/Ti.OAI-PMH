@@ -29,6 +29,7 @@ public class OAIRequester {
 	private int connectTimeout;
 	private KrollObject kroll;
 	private boolean stopped = false;
+	AsyncHttpClient client;
 
 	public OAIRequester(String _endpoint, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
@@ -52,14 +53,16 @@ public class OAIRequester {
 		doRequest(_options);
 	}
 
-	public void release() {
-		stopped = true;
+	public void abort() {
+		client.cancelAllRequests(true);
+		this.onLoadCallback = null;
+		this.onErrorCallback = null;
 	}
 
 	private void doRequest(final KrollDict _options) {
 		if (stopped)
 			return;
-		AsyncHttpClient client = new AsyncHttpClient();
+		client = new AsyncHttpClient();
 		RequestParams requestParams = new RequestParams();
 		requestParams.put("verb", verb);
 		if (_options != null) {

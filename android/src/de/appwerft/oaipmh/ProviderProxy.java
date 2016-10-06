@@ -35,6 +35,7 @@ public class ProviderProxy extends KrollProxy {
 	private int retries = 1;
 	private int requestId = -1;
 	private HashMap<Integer, OAIRequester> requesters = new HashMap<Integer, OAIRequester>();
+	final String METADATAPREFIX = "oai_dc";
 
 	// Constructor
 	public ProviderProxy() {
@@ -87,18 +88,6 @@ public class ProviderProxy extends KrollProxy {
 	}
 
 	@Kroll.method
-	public int ListIdentifiers(KrollDict _options,
-			@Kroll.argument(optional = true) KrollFunction _onload,
-			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
-				"ListIdentifiers", _options, getKrollObject(), _onload,
-				_onerror);
-		requesters.put(++requestId, request);
-		request.setRequestId(requestId);
-		return requestId;
-	}
-
-	@Kroll.method
 	public int ListMetadataFormats(Object dummy,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
@@ -114,9 +103,22 @@ public class ProviderProxy extends KrollProxy {
 	public int ListRecords(KrollDict _options,
 			@Kroll.argument(optional = true) KrollFunction _onload,
 			@Kroll.argument(optional = true) KrollFunction _onerror) {
-		_options.put("metadataPrefix", "oai_dc");
+		_options.put("metadataPrefix", METADATAPREFIX);
 		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
 				"ListRecords", _options, getKrollObject(), _onload, _onerror);
+		requesters.put(++requestId, request);
+		request.setRequestId(requestId);
+		return requestId;
+	}
+
+	@Kroll.method
+	public int ListIdentifiers(KrollDict _options,
+			@Kroll.argument(optional = true) KrollFunction _onload,
+			@Kroll.argument(optional = true) KrollFunction _onerror) {
+		_options.put("metadataPrefix", METADATAPREFIX);
+		OAIRequester request = new OAIRequester(ENDPOINT, retries, timeout,
+				"ListIdentifiers", _options, getKrollObject(), _onload,
+				_onerror);
 		requesters.put(++requestId, request);
 		request.setRequestId(requestId);
 		return requestId;

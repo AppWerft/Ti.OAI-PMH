@@ -26,7 +26,7 @@ public class OAIRequester {
 	private String ENDPOINT;
 	private KrollFunction onErrorCallback;
 	private KrollFunction onLoadCallback;
-	private static final String LCAT = "OAI 📖";
+	private static final String LCAT = "OAIReq 📖";
 	Context ctx = TiApplication.getInstance().getApplicationContext();
 	private long startTime;
 	private long mainstartTime = System.currentTimeMillis();
@@ -35,16 +35,12 @@ public class OAIRequester {
 	private int connectTimeout;
 	private KrollObject kroll;
 	public boolean aborted = false;
-	AsyncHttpClient client;
+	AsyncHttpClient client = new AsyncHttpClient();
 	private int page = 0;
 	private int requestId = -1;
 	final int MSG_DO_NEXTREQUEST = 1;
 
-	public OAIRequester(String _endpoint, String _verb, KrollDict _options,
-			KrollObject _kroll, Object _onload, Object _onerror) {
-		this(_endpoint, 0, 20000, _verb, _options, _kroll, _onload, _onerror);
-	}
-
+	/* C O N S T R U C T O R */
 	public OAIRequester(final String _endpoint, final int _retries,
 			int _connectTimeout, String _verb, KrollDict _options,
 			KrollObject _kroll, Object _onload, Object _onerror) {
@@ -59,31 +55,13 @@ public class OAIRequester {
 		if (_onerror instanceof KrollFunction) {
 			this.onErrorCallback = (KrollFunction) _onerror;
 		}
-		doRequest(_options);
+		startAsyncRequest(_options);
 	}
 
-	public void setRequestId(int requestId) {
-		this.requestId = requestId;
-	}
-
-	public void abort() {
-		this.aborted = true;
-	}
-
-	@Override
-	public String toString() {
-		return "{requestId : " + requestId + ", verb : " + this.verb
-				+ ", page : " + page + ", duration : "
-				+ (System.currentTimeMillis() - mainstartTime) + "}";
-	}
-
-	private void doRequest(final KrollDict _options) {
+	private void startAsyncRequest(final KrollDict _options) {
 		if (this.aborted == true) {
-			Log.d(LCAT, "requester want request, but should stopp");
 			return;
-		} else
-			Log.d(LCAT, "doRequest without aborting");
-		client = new AsyncHttpClient();
+		}
 		RequestParams requestParams = new RequestParams();
 		requestParams.put("verb", verb);
 		if (_options != null) {
@@ -118,73 +96,89 @@ public class OAIRequester {
 
 			@Override
 			public void onSuccess(int status, Header[] header, byte[] response) {
-				if (aborted != false) {
-					Log.d(LCAT, "aborted. no proceeding in onSuccess() is need");
+				if (OAIRequester.this.aborted == true) {
+					if (client != null)
+						client.cancelAllRequests(true);
 					return;
-				} else
-					Log.d(LCAT, "not yet aborted");
-				String xml = HTTPHelper.getBody(header, response);
-				if (xml.length() < 5 || !xml.contains("<?xml")) {
-					if (onErrorCallback != null) {
-						KrollDict dict = new KrollDict();
-						dict.put("error", "html");
-						dict.put("html", xml);
-						dict.put("message", "Server answer is HTML.");
-						onErrorCallback.call(kroll, dict);
+				} else {
+					String xml = HTTPHelper.getBody(header, response);
+					if (xml.length() < 5 || !xml.contains("<?xml")) {
+						if (onErrorCallback != null) {
+							KrollDict dict = new KrollDict();
+							dict.put("error", "html");
+							dict.put("html", xml);
+							dict.put("message", "Server answer is HTML.");
+							onErrorCallback.call(kroll, dict);
+						}
+						return;
 					}
-					return;
-				}
-				org.json.jsonjava.JSONObject json = new org.json.jsonjava.JSONObject();
-				try {
-					String escapedXml = xml;// StringEscapeUtils.unescapeHtml(xml);
-					json = org.json.jsonjava.XML.toJSONObject(escapedXml);
-				} catch (org.json.jsonjava.JSONException ex) {
-					if (onErrorCallback != null) {
-						KrollDict dict = new KrollDict();
-						dict.put("error", "cannot parse xml");
-						dict.put("message", "Issues during XML parsing");
-						onErrorCallback.call(kroll, dict);
+					org.json.jsonjava.JSONObject json = new org.json.jsonjava.JSONObject();
+					try {
+						String escapedXml = xml;// StringEscapeUtils.unescapeHtml(xml);
+						json = org.json.jsonjava.XML.toJSONObject(escapedXml);
+					} catch (org.json.jsonjava.JSONException ex) {
+						if (onErrorCallback != null) {
+							KrollDict dict = new KrollDict();
+							dict.put("error", "cannot parse xml");
+							dict.put("message", "Issues during XML parsing");
+							onErrorCallback.call(kroll, dict);
+						}
 					}
-				}
-				JSONObject jsonresult = (JSONObject) KrollHelper
-						.toKrollDict(json);
-				try {
-					if (onLoadCallback != null)
-						onLoadCallback.call(kroll, new KrollDict(jsonresult));
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
+					JSONObject jsonresult = (JSONObject) KrollHelper
+							.toKrollDict(json);
+					try {
+						if (onLoadCallback != null)
+							onLoadCallback.call(kroll,
+									new KrollDict(jsonresult));
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+					try {
+						String resumptionToken = jsonresult
+								.getJSONObject("OAI-PMH").getJSONObject(verb)
+								.getJSONObject("resumptionToken")
+								.getString("content");
+						_options.put("resumptionToken", resumptionToken);
+						page++;
+						// send a message to main thread to
+						// startAsyncRequest
+						startAsyncRequest(_options);
+						/*
+						 * TiMessenger.sendBlockingMainMessage(new Handler(
+						 * TiMessenger.getMainMessenger().getLooper(), new
+						 * Handler.Callback() { public boolean
+						 * handleMessage(Message msg) { switch (msg.what) { case
+						 * MSG_DO_NEXTREQUEST: { startAsyncRequest(_options);
+						 * AsyncResult result = (AsyncResult) msg.obj;
+						 * result.setResult(null); return true; } } return
+						 * false; } }).obtainMessage(MSG_DO_NEXTREQUEST,
+						 * _options));
+						 */
+					} catch (JSONException e) {
+						// e.printStackTrace();
+					}
 
-				try {
-					String resumptionToken = jsonresult
-							.getJSONObject("OAI-PMH").getJSONObject(verb)
-							.getJSONObject("resumptionToken")
-							.getString("content");
-					_options.put("resumptionToken", resumptionToken);
-					page++;
-					// send a message to main thread to
-					// doRequest
-					TiMessenger.sendBlockingMainMessage(new Handler(TiMessenger
-							.getMainMessenger().getLooper(),
-							new Handler.Callback() {
-								public boolean handleMessage(Message msg) {
-									switch (msg.what) {
-									case MSG_DO_NEXTREQUEST: {
-										doRequest(_options);
-										AsyncResult result = (AsyncResult) msg.obj;
-										result.setResult(null);
-										return true;
-									}
-									}
-									return false;
-								}
-							}).obtainMessage(MSG_DO_NEXTREQUEST, _options));
-
-				} catch (JSONException e) {
-					e.printStackTrace();
 				}
-
 			}
 		});
+	}
+
+	public void setRequestId(int requestId) {
+		this.requestId = requestId;
+	}
+
+	public void abort() {
+		this.aborted = true;
+		this.client.cancelAllRequests(true);
+		this.onLoadCallback = null;
+		this.onErrorCallback = null;
+	}
+
+	@Override
+	public String toString() {
+		return "{requestId=" + requestId + ", verb=" + this.verb + ", page="
+				+ page + ", duration="
+				+ (System.currentTimeMillis() - mainstartTime) + ", aborted="
+				+ aborted + "}";
 	}
 }
